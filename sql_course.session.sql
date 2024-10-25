@@ -102,3 +102,95 @@ DROP COLUMN contact_name;
 
 DROP TABLE job_applied;
 
+
+
+WITH company_job_count AS (
+SELECT 
+        company_id,
+        COUNT(*) AS total_job_count
+FROM 
+        job_postings_fact
+GROUP BY
+        company_id
+)
+
+SELECT 
+        company_dim.name AS company_name,
+        company_job_count.total_job_count
+FROM 
+        company_dim
+LEFT JOIN company_job_count
+        ON company_dim.company_id = company_job_count.company_id
+ORDER BY 
+        total_job_count DESC;
+
+
+
+WITH remote_job_skills AS (
+SELECT 
+        skill_id,
+        COUNT(*) AS skills_count
+FROM 
+        skills_job_dim AS skills_to_job
+INNER JOIN job_postings_fact AS job_posting 
+        ON job_posting.job_id = skills_to_job.job_id
+WHERE 
+        job_posting.job_work_from_home = TRUE
+GROUP BY 
+        skill_id
+)
+
+SELECT 
+        skills.skill_id,
+        skills_count,
+        skills AS skill_name
+FROM 
+        remote_job_skills
+INNER JOIN skills_dim AS skills 
+        ON remote_job_skills.skill_id = skills.skill_id
+ORDER BY 
+        skills_count DESC
+LIMIT 5;
+
+
+SELECT 
+        job_title_short,
+        company_id,
+        job_location
+From 
+        job_postings_fact
+
+UNION ALL
+
+SELECT 
+        job_title_short,
+        company_id,
+        job_location
+From 
+        february_jobs
+
+
+
+
+SELECT 
+        quarter_job_posting.job_location,
+        quarter_job_posting.job_title_short,
+        quarter_job_posting.job_via,
+        quarter_job_posting.job_posted_date::DATE
+FROM (
+SELECT *
+FROM 
+        january_jobs
+UNION ALL
+
+SELECT *
+FROM 
+        february_jobs
+UNION ALL
+
+SELECT *
+FROM 
+        march_jobs
+) AS quarter_job_posting
+WHERE 
+        quarter_job_posting.salary_year_avg > 70000;
